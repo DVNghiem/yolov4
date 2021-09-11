@@ -1,0 +1,74 @@
+* tham khảo https://github.com/alexeyab/darknet
+
+file Makefile
+	GPU = 1
+	OPENCV = 1
+
+file yolov4-tiny.cfg
+	- dòng 6: thay đổi batch = 64 (số ảnh)
+
+	- dòng 7: Thay đổi subdivisions=16. Trong một batch được chia thành nhiều block, mỗi block chứa batch/subdivisions ảnh được đưa vào GPU xử lý tại một thời điểm. Weights của mô hình được update sau mỗi batch
+
+	- dòng 21: thay max_batches = max(classes*2000, 6000)
+
+	- dòng 23: steps = 80%, 90% của max_batches
+
+	- Thay đổi classes=1 trong mỗi layer [yolo]
+	
+	- Thay đổi filters trong mỗi layer [convolutional] trước layer [yolo] theo công thức filters=(số class+5)*3
+
+trong thư mục darknet:
+	tạo file obj.names: mỗi dòng là tên mỗi class
+	tạo file obj.data có nội dung:
+		classes = 1 (số lượng class)
+		train = data/train.txt
+		valid = data/valid.txt
+		names = obj.names
+		backup = backup/
+
+trong darknet/src tìm file detector.c
+	tìm đến dòng 385 để chỉnh save model sau số lượng epoch nhất định
+
+
+********* train model trên colab ***********
+- kết nối colab đến google drive
+- %cd ...... chuyển đến thư mục chứa file darknet.zip
+- !unzip darknet.zip
+- %cd darknet
+- !mkdir backup
+
+#Tạo file train.txt, valid.txt theo đoạn code
+import os
+import numpy as np
+#"obj" là tên thư mục chứa cả ảnh và file annotation.
+lst_files = os.listdir("data/obj/")
+lst_images = []
+
+for file in lst_files:
+  if ".txt" not in file:
+    lst_images.append(file)
+    
+#Tách 200 ảnh ra làm tập validation  
+random_idx = np.random.randint(0, len(lst_images), 200)
+
+#Tạo file train.txt được đặt trong thư mục darknet/data
+with open("data/train.txt","w") as f:
+  for idx in range(len(lst_images)):
+    if idx not in random_idx:
+      f.write("data/obj/"+lst_images[idx]+"\n")
+      
+#Tạo file valid.txt được đặt trong thư mục darknet/data
+with open("data/valid.txt","w") as f:
+    for idx in random_idx:
+      f.write("data/obj/"+lst_images[idx]+"\n")
+
+
+#Biên dịch darknet (chỉ cần biên dịch một lần, lần sau dùng bỏ qua bước này)
+!make
+
+#Phân quyền thực thi module darknet
+!chmod +x ./darknet
+
+!./darknet detector train obj.data yolov4-tiny.cfg yolov4-tiny.conv.29 -map -dont_show
+
+
