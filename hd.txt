@@ -69,6 +69,6 @@ with open("data/valid.txt","w") as f:
 #Phân quyền thực thi module darknet
 !chmod +x ./darknet
 
-!./darknet detector train obj.data yolov4-tiny.cfg yolov4-tiny.conv.29 -map -dont_show
+!./darknet detector train obj.data cfg/yolov4-tiny.cfg yolov4-tiny.conv.29 -map -dont_show
 
 
